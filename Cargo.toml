@@ -9,7 +9,7 @@ description = """
 documentation = "https://github.com/ashyanSpada/simple_peg_rs"
 homepage = "https://github.com/ashyanSpada/simple_peg_rs"
 repository = "https://github.com/ashyanSpada/simple_peg_rs"
-keywords = ["peg parser", "peg", "compile"]
+keywords = ["peg-parser", "peg", "compile"]
 categories = ["command-line-utilities", "text-processing"]
 license = "Apache-2.0"
 
