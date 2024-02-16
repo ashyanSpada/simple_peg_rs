@@ -11,7 +11,7 @@ homepage = "https://github.com/ashyanSpada/simple_peg_rs"
 repository = "https://github.com/ashyanSpada/simple_peg_rs"
 keywords = ["peg parser", "peg", "compile"]
 categories = ["command-line-utilities", "text-processing"]
-license = "Appache2.0"
+license = "Appache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
