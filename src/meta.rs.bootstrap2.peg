@@ -1,0 +1,171 @@
+sentence <- _ r: rule g: (_ rule) * -> (r+&g).
+
+start <- sentence.
+
+sp <- ' ' / '\n' / '\t'.
+
+_  <- sp _ / .
+
+rule    <- n: name _ '<-'_ body: choice '.'_ ->
+               (
+                    format!(
+                        "
+                        fn parse_{n}<'a,'b>(memo: &'a mut Memo, parent: String, input: &'b str, pos: usize) -> Option<State> {{
+                            add_operation(memo, parent, \"{n}\", input, pos);
+                            let key = format!(\"{n}::{{pos}}\");
+                            let (mut state, existed) = memo.get(key.clone());
+                            if existed {{
+                                return state;
+                            }}
+                            state = Some(State{{value: \"\".to_string(), pos: pos}});
+                            let mut stack: Vec<Option<State>> = Vec::new();
+                            {body}
+                            memo.insert(key, state.clone());
+                            state
+                        }}
+                        "
+                    )
+               )
+           .
+
+meta     <- '!' / '\'' / '<-' / '/' / '.' / '(' / ')' / ':' / '->' / '*' / '?'.
+
+name     <- c: namechar n: name -> (c + &n) / namechar.
+
+namechar <- !meta !sp char.
+
+term <- labeled / star / question / nonterminal / string / negation / parenthesized.
+
+nonterminal <- n: name _ ->
+                   (
+                        format!("
+                            state = parse_{n}(memo, key.clone(), input, state.clone().unwrap().pos);
+                        ")
+                    )
+               .
+
+labeled <- label: name _ ':'_ value: term ->
+               (
+                    format!("
+                        {value}
+                        let mut {label} = String::new();
+                        if state.is_some() {{
+                            {label} = state.clone().unwrap().value;
+                        }}
+                    ")
+                )
+           .
+star <- value: (string / nonterminal /parenthesized) _ '*' _ -> (
+    format!(
+        "
+        stack.push(state.clone());
+        let mut is_first = true;
+        loop {{
+            {value}
+            if state.is_some() {{
+                let last_state = stack.pop().unwrap();
+                let mut cur_state = state.clone().unwrap();
+                if !is_first && last_state.is_some() {{
+                    cur_state.value = last_state.unwrap().value + &cur_state.value;
+                }}
+                stack.push(Some(cur_state));
+            }} else {{
+                break;
+            }}
+            is_first = false;
+        }}
+        state = stack.pop().unwrap();
+        "
+    )
+).
+
+question <- value: (string / nonterminal / parenthesized) _ '?' _ -> (
+    format!(
+        "
+        stack.push(state.clone());
+        {value}
+        if state.is_some() {{
+            stack.pop();
+            stack.push(state.clone());
+        }}
+        state = stack.pop().unwrap();
+        "
+    )
+).
+
+sequence <- foo: term  bar: sequence -> 
+                   (
+                        format!("
+                            {foo}
+                            if state.is_some() {{
+                                {bar}
+                            }}
+                        ")
+                    )
+               / result_expression / -> ("".to_string()).
+
+string <- '\'' s: stringcontents '\''_ ->
+            (
+                format!("
+                    state = literal(memo, key.clone(), input, state.clone().unwrap().pos, \"{s}\");
+                ")
+            )
+          .
+
+stringcontents <-   !'\\' !'\'' c: char  s: stringcontents -> (c + &s)
+                / b: '\\'       c: char  s: stringcontents -> (b + &c + &s)
+                / -> ("".to_string()).
+
+choice <- a: sequence '/'_  b: choice ->
+                  (
+                    format!(
+                        "
+                        stack.push(state.clone());
+                        {a}
+                        if state.is_none() {{
+                            state = stack.pop().unwrap();
+                            {b}
+                        }} else {{
+                            stack.pop().unwrap();
+                        }}
+                    "
+                    )
+                  )
+              / sequence.
+
+negation <- '!'_ t: term ->
+                (
+                    format!(
+                    "
+                        stack.push(state.clone());
+                        {t}
+                        if state.is_some() {{
+                            stack.pop().unwrap();
+                            state = None;
+                        }} else {{
+                            state = stack.pop().unwrap();
+                        }}
+                    ")
+                )
+            .
+
+result_expression <- '->'_ result: expr _ ->
+                        (
+                            format!(
+                                "
+                                state = Some(State {{
+                                    value: {result},
+                                    pos: state.clone().unwrap().pos,
+                                }});
+                                "
+                            )
+                        )
+                     .
+
+expr         <- '('_ e: exprcontents ')' -> ("(".to_string() + &e + ")").
+
+exprcontents <- c: (!'(' !')' char / expr)  e: exprcontents -> (c + &e)
+              / -> ("".to_string()).
+
+parenthesized <- '('_ body: choice ')'_ -> (body).
+

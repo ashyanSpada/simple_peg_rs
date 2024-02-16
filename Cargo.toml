@@ -1,0 +1,23 @@
+[package]
+name = "simple_peg"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ausar Wang<ashyan_spada@outlook.com>"]
+description = """
+    A command-line peg parser implemented by Rust.
+"""
+documentation = "https://github.com/ashyanSpada/simple_peg_rs"
+homepage = "https://github.com/ashyanSpada/simple_peg_rs"
+repository = "https://github.com/ashyanSpada/simple_peg_rs"
+keywords = ["peg parser", "peg", "compile"]
+categories = ["command-line-utilities", "text-processing"]
+license = "Appache2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+bench = false
+path = "src/main.rs"
+name = "simple_peg"
+
+[dependencies]
