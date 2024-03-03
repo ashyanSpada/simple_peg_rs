@@ -108,8 +108,9 @@ matched: {}
             );
         }
         ans += &format!("total: {}", self.operations.len());
-        let mut file = File::create("./src/operations.txt").unwrap();
+        let mut file = File::create("./operations.txt").unwrap();
         file.write_all(ans.as_bytes()).unwrap();
+        print!("{}", ans)
     }
 }
 
