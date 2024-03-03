@@ -1,28 +1,7 @@
 use std::{collections::HashMap, io::Write};
 
-pub fn parse_helper(input: &str, index: usize) {
-    if index > input.len() - 1 {
-        return;
-    }
-    let (row, col) = transform_index_2_rowcol(input, index);
-    let start = if index >= 5 { index - 5 } else { 0 };
-    let end = if index + 5 < input.len() {
-        index + 5
-    } else {
-        input.len()
-    };
-    println!(
-        "index: {}, row: {}, col: {}, cur: {}, at: {}",
-        index,
-        row,
-        col,
-        input.chars().nth(index).unwrap(),
-        input[start..end].to_string()
-    )
-}
-
 pub fn add_operation<'a, 'b, 'c>(
-    memo: &'a mut Memo,
+    memo: &'a mut Memo<String>,
     parent: String,
     name: &'c str,
     input: &'b str,
@@ -47,8 +26,8 @@ pub fn transform_index_2_rowcol(input: &str, index: usize) -> (usize, usize) {
 }
 
 #[derive(Clone, Debug)]
-pub struct State {
-    pub value: String,
+pub struct State<T> {
+    pub value: T,
     pub pos: usize,
 }
 
@@ -60,12 +39,12 @@ pub struct Operation {
     pub col: usize,
 }
 
-pub struct Memo {
-    store: HashMap<String, Option<State>>,
+pub struct Memo<T: Clone> {
+    store: HashMap<String, Option<State<T>>>,
     operations: Vec<Operation>,
 }
 
-impl Memo {
+impl<T: Clone> Memo<T> {
     pub fn new() -> Self {
         Memo {
             store: HashMap::new(),
@@ -73,7 +52,7 @@ impl Memo {
         }
     }
 
-    pub fn get(&self, key: String) -> (Option<State>, bool) {
+    pub fn get(&self, key: String) -> (Option<State<T>>, bool) {
         let state = self.store.get(&key);
         if state.is_some() {
             return (state.unwrap().clone(), true);
@@ -81,7 +60,7 @@ impl Memo {
         (None, false)
     }
 
-    pub fn insert(&mut self, key: String, state: Option<State>) {
+    pub fn insert(&mut self, key: String, state: Option<State<T>>) {
         self.store.insert(key, state);
     }
 
@@ -135,12 +114,12 @@ matched: {}
 }
 
 pub fn literal<'a, 'b>(
-    memo: &'a mut Memo,
+    memo: &'a mut Memo<String>,
     parent: String,
     input: &'b str,
     pos: usize,
     s: &str,
-) -> Option<State> {
+) -> Option<State<String>> {
     let name = &format!("literal: {s}");
     let key = format!("{name}::{pos}");
     let (mut state, existed) = memo.get(key.clone());
@@ -160,7 +139,12 @@ pub fn literal<'a, 'b>(
     state
 }
 
-pub fn parse_char<'a, 'b>(memo: &'a Memo, _: String, input: &'b str, pos: usize) -> Option<State> {
+pub fn parse_char<'a, 'b>(
+    memo: &'a Memo<String>,
+    _: String,
+    input: &'b str,
+    pos: usize,
+) -> Option<State<String>> {
     if pos >= input.len() {
         return None;
     }
@@ -168,24 +152,4 @@ pub fn parse_char<'a, 'b>(memo: &'a Memo, _: String, input: &'b str, pos: usize)
         value: input[pos..pos + 1].to_string(),
         pos: pos + 1,
     })
-}
-
-mod test {
-    use super::parse_helper;
-
-    #[test]
-    fn test_transform_index_2_rowcol() {
-        use std::fs;
-
-        let content = fs::read_to_string("./src/test1.peg").unwrap();
-        // let ans = transform_index_2_rowcol(&content, 92);
-        // print!(
-        //     "row: {}, col: {}, {:?}, {:?}",
-        //     ans.0,
-        //     ans.1,
-        //     content.chars().nth(92),
-        //     content.chars().nth(93),
-        // );
-        parse_helper(&content, 92);
-    }
 }
